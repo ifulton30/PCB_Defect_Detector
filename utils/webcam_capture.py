@@ -12,29 +12,26 @@ class WebcamPCBCapture:
         self.is_initialized = False
 
         # I will be utilizing these camera settings to adjust for optimal PCB inspection settings
+        # The MSMF Capture API backend doesn't seem to support changing the camera settings, so we will
+        # be utilizing the DSHOW backend instead which I have tested in util/testing/test.ipynb
         self.camera_settings = {
-            'brightness': 128, # Middle range
-            'contrast': 130,
-            'hue': 0,
-            'gain': 64,
-            'exposure': -6,
-            'white_balance': 4600,
-            'focus': 0,
-            'sharpness': 130
+            'brightness': 128,          # Range: [0.0, 255.0]
+            'contrast': 128,            # Range: [0.0, 255.0]
+            'saturation': 128,          # Range: [0.0, 255.0]
+            'gain': 64,                 # Range: [0.0, 255.0]
+            'exposure': -6,             # Range: [-11.0, -2.0]
+            'focus': 0,                 # Range: [0.0, 255.0]
+            'sharpness': 128            # Range: [0.0, 255.0]
         }
 
         # Calls initialize_camera to start up the webcam, but does not show frames yet
         self.initialize_camera()
 
     def initialize_camera(self):
-        """Initializing camera for PCB imaging using MSMF backend"""
+        """Initializing camera for PCB imaging using DSHOW backend"""
         try:
-            # This opens the camera while enforcing the MSMF backend which is a Capture API backend.
+            # This opens the camera while enforcing the DSHOW backend which is a Capture API backend.
             self.cap = cv2.VideoCapture(self.camera_id, cv2.CAP_MSMF)
-
-            # Fallback to default Capture API backend 
-            if not self.cap.isOpened():
-                self.cap = cv2.VideoCapture(self.camera_id)
 
             # Raising an error if neither backends can be used and camera can't be opened
             if not self.cap.isOpened():
@@ -65,6 +62,33 @@ class WebcamPCBCapture:
         if not self.cap:
             print("Camera is not initialized so we cannot apply camera settings")
             return
+        
+        # Mapping the openCV properties
+        property_map = {
+            'brightness': cv2.CAP_PROP_BRIGHTNESS,
+            'contrast': cv2.CAP_PROP_CONTRAST,
+            'saturation': cv2.CAP_PROP_SATURATION,
+            'gain': cv2.CAP_PROP_GAIN,
+            'exposure': cv2.CAP_PROP_EXPOSURE,
+            'focus': cv2.CAP_PROP_FOCUS,
+            'sharpness': cv2.CAP_PROP_SHARPNESS
+        }
+
+        # Iterating through the camera settings
+        for setting, value in self.camera_settings.items():
+            # Checking to make sure the camera settings exist in the property map above
+            if setting in property_map:
+                
+                # Normalizing the camera settings to range between 0-1 for OpenCV (Except for exposure which
+                # could be negative). They currently can range between 0-255
+                if setting in ['exposure']:
+                    normalized_value = value
+                else:
+                    normalized_value = value / 255.0
+
+                success = self.cap.set(property_map[setting], normalized_value)
+
+
 
 class PCBTestingSession:
     """Testing manager for PCB Defect Detection"""
