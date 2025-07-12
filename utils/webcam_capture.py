@@ -117,6 +117,11 @@ class WebcamPCBCapture:
         if ret:
             return frame
         return None
+    
+    def release(self):
+        """Releasing camera resources"""
+        self.cap.release()
+        self.is_initialized = False
 
 class PCBTestingSession:
     """Testing manager for PCB Defect Detection"""
@@ -149,7 +154,7 @@ class PCBTestingSession:
 
     def close(self):
         """Cleaning up all resources"""
-        self.webcam.cap.release()
+        self.webcam.release()
         cv2.destroyAllWindows()
 
 
