@@ -1,4 +1,7 @@
+# The following folders will be ignored so that we don't expose the data to the public
+
 /venv/
 /data/
 /models/
 /training/
+/utils/testing/
