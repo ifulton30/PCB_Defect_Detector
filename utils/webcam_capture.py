@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from pathlib import Path
 
 
 class WebcamPCBCapture:
@@ -46,7 +47,7 @@ class WebcamPCBCapture:
 
             # Successful initialization message which also prints the actual resolution of camera at startup
             self.is_initialized = True
-            print(f"Camera initialized successfully at resolution: {self.get_actual_resolution}")
+            print(f"Camera initialized successfully at resolution: {self.get_actual_resolution()}")
 
         except Exception as e:
             print(f"Error initializing camera: {e}")
@@ -92,27 +93,72 @@ class WebcamPCBCapture:
                 except Exception as e:
                     print(f"Error setting {setting}: {e}")
 
-def get_actual_resolution(self):
-    """Getting the actual camera resolution"""
-    
-    # Checking to make sure that the camera is open
-    if not self.cap:
-        print("Camera is not initialized so we cannot apply camera settings")
-        return
-    
-    # Getting width and height values reported through openCV
-    width = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-    height = self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-    return width, height
+    def get_actual_resolution(self):
+        """Getting the actual camera resolution"""
+        
+        # Checking to make sure that the camera is open
+        if not self.cap:
+            print("Camera is not initialized so we cannot apply camera settings")
+            return
+        
+        # Getting width and height values reported through openCV
+        width = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+        height = self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        return width, height
+
+    def capture_frame(self):
+        """Function to capture a single frame"""
+        if not self.is_initialized:
+            print("Could not capture frame, camera is not initialized")
+            return None
+        
+        # Capturing a frame and returning it
+        ret, frame = self.cap.read()
+        if ret:
+            return frame
+        return None
 
 class PCBTestingSession:
     """Testing manager for PCB Defect Detection"""
 
-    def __init__(self, model, config, output_dir="test_results"):
-        self.model = model
-        self.config = config
+    def __init__(self, output_dir="./test_results"):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok = True)
 
-    # Initializing the webcam by instantiating the WebcamPCBCapture class
-    self.webcam = WebcamPCBCapture()
+        # Initializing the webcam by instantiating the WebcamPCBCapture class
+        self.webcam = WebcamPCBCapture()
+
+    def live_preview(self):
+        """Live camera preview"""
+
+        # Checking to make sure camera is initialized
+        if not self.webcam.is_initialized:
+            print("Camera is not initialized.")
+            return
+        
+        # Displaying live video feed from camera
+        while True:
+            if self.webcam.capture_frame:
+                cv2.imshow('PCB Camera Preview', self.webcam.capture_frame())
+            else:
+                break
+
+            # Closing camera feed 
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+    def close(self):
+        """Cleaning up all resources"""
+        self.webcam.cap.release()
+        cv2.destroyAllWindows()
+
+
+if __name__ == "__main__":
+    # Instantiating test session for camera
+    test = PCBTestingSession()
+
+    # Testing live preview
+    test.live_preview()
+
+    # Clean up resources
+    test.close()
