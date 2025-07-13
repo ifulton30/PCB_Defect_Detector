@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 from pathlib import Path
+from datetime import datetime
 
 
 class WebcamPCBCapture:
@@ -118,6 +119,23 @@ class WebcamPCBCapture:
             return frame
         return None
     
+
+    
+    def save_frame(self, frame, filename):
+        """
+        Function to save the frame to the output folder that is decided in the constructor of PCBTestingSession
+        This will be used for saving an image via button press during live preview
+        Returns True if image saved successfully and False otherwise
+        """
+        if frame is None:
+            print("No frame detected, could not save frame")
+            return False
+        
+        success = cv2.imwrite(filename, frame)
+        if success:
+            print(f"Image saved: {filename}")
+        return success
+    
     def release(self):
         """Releasing camera resources"""
         self.cap.release()
@@ -126,7 +144,7 @@ class WebcamPCBCapture:
 class PCBTestingSession:
     """Testing manager for PCB Defect Detection"""
 
-    def __init__(self, output_dir="./test_results"):
+    def __init__(self, output_dir="test_results"):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok = True)
 
@@ -148,9 +166,15 @@ class PCBTestingSession:
             else:
                 break
 
-            # Closing camera feed 
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+            # Closing camera feed by pressing 'q'
+            key = cv2.waitKey(1) & 0xFF 
+            if key == ord('q'):
                 break
+            elif key == ord('c'):   # During live preview, pressing 'c' will save the frame into ./test_results
+                if self.webcam.capture_frame() is not None:
+                    timestamp = datetime.now().strftime("%m-%d-%y_%H%M%S")
+                    filename = str(self.output_dir / f"capture_{timestamp}.png") # e.g. test_results\capture_07-12-25_182333.png
+                    self.webcam.save_frame(self.webcam.capture_frame(), filename)
 
     def close(self):
         """Cleaning up all resources"""
