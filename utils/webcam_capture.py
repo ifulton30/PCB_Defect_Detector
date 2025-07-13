@@ -1,5 +1,4 @@
 import cv2
-import numpy as np
 from pathlib import Path
 from datetime import datetime
 
@@ -119,8 +118,6 @@ class WebcamPCBCapture:
             return frame
         return None
     
-
-    
     def save_frame(self, frame, filename):
         """
         Function to save the frame to the output folder that is decided in the constructor of PCBTestingSession
@@ -161,26 +158,42 @@ class PCBTestingSession:
         
         # Displaying live video feed from camera
         while True:
-            if self.webcam.capture_frame:
-                cv2.imshow('PCB Camera Preview', self.webcam.capture_frame())
-            else:
-                break
+            # This is the frame that will get saved if we press 'c' during live feed
+            frame = self.webcam.capture_frame()
+            if frame is None:
+                continue
+
+            # Making a copy of the original frame for display with text
+            display_frame = frame.copy()
+
+            # Adding instructions on live feed to let user know which buttons are available
+            cv2.putText(
+                img = display_frame,
+                text = "C : Save image | Q : Quit",
+                org = (5, 30),
+                fontFace = cv2.FONT_HERSHEY_SIMPLEX,
+                fontScale = 1,
+                color = (0, 255, 0),
+                thickness = 2
+            )
+
+            # Displaying image with above text
+            cv2.imshow('PCB Camera Preview', display_frame)
 
             # Closing camera feed by pressing 'q'
             key = cv2.waitKey(1) & 0xFF 
             if key == ord('q'):
                 break
             elif key == ord('c'):   # During live preview, pressing 'c' will save the frame into ./test_results
-                if self.webcam.capture_frame() is not None:
+                if frame is not None:
                     timestamp = datetime.now().strftime("%m-%d-%y_%H%M%S")
                     filename = str(self.output_dir / f"capture_{timestamp}.png") # e.g. test_results\capture_07-12-25_182333.png
-                    self.webcam.save_frame(self.webcam.capture_frame(), filename)
+                    self.webcam.save_frame(frame, filename)
 
     def close(self):
         """Cleaning up all resources"""
         self.webcam.release()
         cv2.destroyAllWindows()
-
 
 if __name__ == "__main__":
     # Instantiating test session for camera
