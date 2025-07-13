@@ -1,6 +1,7 @@
 import cv2
 from pathlib import Path
 from datetime import datetime
+import time
 
 
 class WebcamPCBCapture:
@@ -20,9 +21,10 @@ class WebcamPCBCapture:
             'contrast': 128.0,            # Range: [0.0, 255.0], Default: 128.0
             'saturation': 128.0,          # Range: [0.0, 255.0], Default: 128.0
             'gain': 9.0,                  # Range: [0.0, 255.0], Default: 9.0
-            'exposure': -6.0,             # Range: [-11.0, -2.0], Default: -5.0
-            'focus': 0.0,                 # Range: [0.0, 255.0], Default: 0.0
-            'sharpness': 128.0            # Range: [0.0, 255.0], Default: 128.0
+            'exposure': -3.0,             # Range: [-11.0, -2.0], Default: -5.0
+            'focus': 10.0,               # Range: [0.0, 255.0], Default: 0.0
+            'sharpness': 128.0,            # Range: [0.0, 255.0], Default: 128.0
+            'fps': 30.0                   # Range: [0.0, 500.0], Default: 0.0
         }
 
         # Calls initialize_camera to start up the webcam, but does not show frames yet
@@ -37,6 +39,11 @@ class WebcamPCBCapture:
             # Raising an error if DSHOW backend can't be used and camera can't be opened since we can't adjust camera settings
             if not self.cap.isOpened():
                 raise Exception(f"Cannot open camera {self.camera_id}")
+            
+            # So I was battling a problem with the DSHOW backend where it only got 5 fps
+            # By setting the codec here, for some reason this fixes it
+            #fourcc_mjpeg = cv2.VideoWriter_fourcc('M', 'J', 'P', 'G')
+            #self.cap.set(cv2.CAP_PROP_FOURCC, fourcc_mjpeg)
             
             # Setting the resolution of the camera. The Logitech C920 shoots up to 1920x1080
             self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.resolution[0])
@@ -72,7 +79,8 @@ class WebcamPCBCapture:
             'gain': cv2.CAP_PROP_GAIN,
             'exposure': cv2.CAP_PROP_EXPOSURE,
             'focus': cv2.CAP_PROP_FOCUS,
-            'sharpness': cv2.CAP_PROP_SHARPNESS
+            'sharpness': cv2.CAP_PROP_SHARPNESS,
+            'fps': cv2.CAP_PROP_FPS
         }
 
         # Iterating through the camera settings
@@ -133,6 +141,24 @@ class WebcamPCBCapture:
             print(f"Image saved: {filename}")
         return success
     
+    def calculate_fps(self):
+        """Calculate and return current FPS"""
+        if not hasattr(self, 'fps_counter'):
+            # Initialize FPS tracking variables
+            self.fps_counter = 0
+            self.fps_start_time = time.time()
+            self.current_fps = 0.0
+        
+        self.fps_counter += 1
+        elapsed_time = time.time() - self.fps_start_time
+        
+        if elapsed_time >= 1.0:  # Update FPS every second
+            self.current_fps = self.fps_counter / elapsed_time
+            self.fps_counter = 0
+            self.fps_start_time = time.time()
+        
+        return self.current_fps
+    
     def release(self):
         """Releasing camera resources"""
         self.cap.release()
@@ -163,13 +189,15 @@ class PCBTestingSession:
             if frame is None:
                 continue
 
+            fps = self.webcam.calculate_fps()
+
             # Making a copy of the original frame for display with text
             display_frame = frame.copy()
 
             # Adding instructions on live feed to let user know which buttons are available
             cv2.putText(
                 img = display_frame,
-                text = "C : Save image | Q : Quit",
+                text = f"C : Save image | Q : Quit | FPS: {fps:.1f}",
                 org = (5, 30),
                 fontFace = cv2.FONT_HERSHEY_SIMPLEX,
                 fontScale = 1,
