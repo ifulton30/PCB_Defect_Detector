@@ -15,7 +15,7 @@ This section will list all the machine learning/computer vision techniques used 
 
 [1] Zhu, X., Cheng, D., Zhang, Z., Lin, S., & Dai, J. (2019, April 11). An empirical study of spatial attention mechanisms in deep networks. arXiv.org. https://arxiv.org/abs/1904.05873
 
-[2] Vaswani, Ashish et al. “Attention is All you Need.” Neural Information Processing Systems (2017).
+[2] Vaswani, Ashish et al. “Attention is All you Need.” Neural Information Processing Systems (2017). https://www.semanticscholar.org/reader/204e3073870fae3d05bcbc2f6a8e263d9b72e776
 
 Webcam Capture API Backends:
 https://docs.opencv.org/3.4/d4/d15/group__videoio__flags__base.html#gga023786be1ee68a9105bf2e48c700294dab6ac3effa04f41ed5470375c85a23504
