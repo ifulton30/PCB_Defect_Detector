@@ -101,6 +101,23 @@ class WebcamPCBCapture:
                 except Exception as e:
                     print(f"Error setting {setting}: {e}")
 
+    def change_setting(self, setting, delta):
+        """Increment or decrement a camera setting (e.g., focus, gain, brightness)"""
+        if setting not in self.camera_settings:
+            print(f"{setting} is not adjustable.")
+            return
+
+        self.camera_settings[setting] += delta
+
+        # Clamp the values based on known setting ranges
+        if setting == "focus":
+            self.camera_settings[setting] = max(0.0, min(250.0, self.camera_settings[setting]))
+        elif setting in ["gain", "brightness", "contrast"]:
+            self.camera_settings[setting] = max(0.0, min(255.0, self.camera_settings[setting]))
+
+        self.apply_camera_settings()
+
+
     def get_actual_resolution(self):
         """Getting the actual camera resolution"""
         
@@ -205,13 +222,40 @@ class PCBTestingSession:
                 thickness = 2
             )
 
+            cv2.putText(
+                img=display_frame,
+                text=f"Focus: {self.webcam.camera_settings['focus']:.1f} | Gain: {self.webcam.camera_settings['gain']:.1f} | Brightness: {self.webcam.camera_settings['brightness']:.1f} | Contrast: {self.webcam.camera_settings['contrast']:.1f}",
+                org=(5, 70),
+                fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                fontScale=0.7,
+                color=(0, 255, 255),
+                thickness=2
+            )
+
             # Displaying image with above text
             cv2.imshow('PCB Camera Preview', display_frame)
 
             # Closing camera feed by pressing 'q'
-            key = cv2.waitKey(1) & 0xFF 
+            key = cv2.waitKey(1) & 0xFF
+           
             if key == ord('q'):
                 break
+            elif key == ord('='):
+                self.webcam.change_setting('focus', 5.0)
+            elif key == ord('-'):
+                self.webcam.change_setting('focus', -5.0)
+            elif key == ord(']'):
+                self.webcam.change_setting('gain', 5.0)
+            elif key == ord('['):
+                self.webcam.change_setting('gain', -5.0)
+            elif key == ord('\''):  # single quote key
+                self.webcam.change_setting('brightness', 5.0)
+            elif key == ord(';'):
+                self.webcam.change_setting('brightness', -5.0)
+            elif key == ord('.'):
+                self.webcam.change_setting('contrast', 5.0)
+            elif key == ord(','):
+                self.webcam.change_setting('contrast', -5.0)
             elif key == ord('c'):   # During live preview, pressing 'c' will save the frame into ./test_results
                 if frame is not None:
                     timestamp = datetime.now().strftime("%m-%d-%y_%H%M%S")
